@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>员工信息管理系统</title>
+	<script src="vue.js"></script>
+	<link rel="stylesheet" href="elementui.min.css">
+	<script src="elementui.min.js"></script>
+	<script src="axios.min.js"></script>
+	<style>
+		.test{
+			color:#f00;
+		}
+		li{
+			list-style:none;
+			cursor:pointer;
+		}
+	</style>
+</head>
+<body>
+	<div id="root">
+		<el-button type="primary" icon="el-icon-plus" @click="showAddDialog">添加新员工</el-button>
+		<el-dialog title="添加新员工" :visible.sync="addDialogVisible" width="700px">
+			<el-form label-width="80px">
+				<el-form-item label="姓名">
+					<el-input v-model="newItem.name"></el-input>
+			  	</el-form-item>
+
+				<el-form-item label="性别">
+					<el-radio-group v-model="newItem.sex" >
+						<el-radio-button label="1">男</el-radio-button>
+						<el-radio-button label="0">女</el-radio-button>
+					</el-radio-group>
+			  	</el-form-item>
+			  	<el-form-item label="所属部门">
+					<el-input v-model="newItem.department"></el-input>
+			  	</el-form-item>
+			  	<el-form-item label="薪资">
+					<el-input v-model="newItem.salary"></el-input>
+			  	</el-form-item>
+			  	<el-form-item label="手机号">
+					<el-input v-model="newItem.number"></el-input>
+			  	</el-form-item>
+			  	<el-form-item label="生日">
+					 <el-date-picker v-model="newItem.birthday" value-format="yyyy-MM-dd" type="date" placeholder="选择日期"></el-date-picker>
+			  	</el-form-item>
+			  	<el-form-item label="在职状态">
+					<el-switch v-model="newItem.status" active-text="新入职" inactive-text="已离职" active-value="1" inactive-value="0"></el-switch>
+			  	</el-form-item>
+			  	<el-form-item label="入职时间">
+					 <el-date-picker v-model="newItem.joinDate" value-format="yyyy-MM-dd" type="date" placeholder="选择日期"></el-date-picker>
+			  	</el-form-item>
+			  	<el-form-item label="离职时间" v-if="!Number(newItem.status)">
+					 <el-date-picker v-model="newItem.leaveDate" value-format="yyyy-MM-dd" type="date" placeholder="选择日期"></el-date-picker>
+			  	</el-form-item>
+			  	<el-form-item label="身份证">
+					<el-input v-model="newItem.IDCard"></el-input>
+			  	</el-form-item>
+			  	
+		  	</el-form>
+
+
+			<span slot="footer" class="dialog-footer">
+				<el-button @click="cancelAdd">取 消</el-button>
+				<el-button type="primary" @click="confirmAdd">确 定</el-button>
+			</span>
+		</el-dialog>
+		<el-dialog title="修改员工信息" :visible.sync="editDialogVisible" width="700px">
+			<el-form label-width="80px">
+				<el-form-item label="员工编号">
+					<el-input v-model="editItem.ID" disabled></el-input>
+			  	</el-form-item>
+
+				<el-form-item label="姓名">
+					<el-input v-model="editItem.name"></el-input>
+			  	</el-form-item>
+
+				<el-form-item label="性别">
+					<el-radio-group v-model="editItem.sex" >
+						<el-radio-button label="1">男</el-radio-button>
+						<el-radio-button label="0">女</el-radio-button>
+					</el-radio-group>
+			  	</el-form-item>
+			  	<el-form-item label="所属部门">
+					<el-input v-model="editItem.department"></el-input>
+			  	</el-form-item>
+			  	<el-form-item label="薪资">
+					<el-input v-model="editItem.salary"></el-input>
+			  	</el-form-item>
+			  	<el-form-item label="手机号">
+					<el-input v-model="editItem.number"></el-input>
+			  	</el-form-item>
+			  	<el-form-item label="生日">
+					 <el-date-picker v-model="editItem.birthday" value-format="yyyy-MM-dd" type="date" placeholder="选择日期"></el-date-picker>
+			  	</el-form-item>
+			  	<el-form-item label="在职状态">
+					<el-switch v-model="editItem.status" active-text="新入职" inactive-text="已离职" :active-value="1" :inactive-value="0"></el-switch>
+			  	</el-form-item>
+			  	<el-form-item label="入职时间">
+					 <el-date-picker v-model="editItem.joinDate" value-format="yyyy-MM-dd" type="date" placeholder="选择日期"></el-date-picker>
+			  	</el-form-item>
+			  	<el-form-item label="离职时间" v-if="!Number(editItem.status)">
+					 <el-date-picker v-model="editItem.leaveDate" value-format="yyyy-MM-dd" type="date" placeholder="选择日期"></el-date-picker>
+			  	</el-form-item>
+			  	<el-form-item label="身份证">
+					<el-input v-model="editItem.IDCard"></el-input>
+			  	</el-form-item>
+		  	</el-form>
+
+			<span slot="footer" class="dialog-footer">
+				<el-button @click="cancelEdit">取 消</el-button>
+				<el-button type="primary" @click="confirmEdit">确 定</el-button>
+			</span>
+		</el-dialog>
+		<el-table :data="list" stripe>
+			<el-table-column prop="ID" label="员工编号"></el-table-column>
+			<el-table-column prop="name" label="姓名"></el-table-column>
+			<el-table-column prop="sex" label="性别">
+				<template slot-scope="data">
+					<span v-if="data.row.sex == 1">男</span>
+					<span v-else>女</span>
+				</template>
+			</el-table-column>
+			<el-table-column prop="birthday" label="出生日期"></el-table-column>
+			<el-table-column prop="department" label="所属部门"></el-table-column>
+			<el-table-column prop="salary" label="薪资"></el-table-column>
+			<el-table-column prop="number" label="手机"></el-table-column>
+			<el-table-column prop="status" label="在职状态">
+				<template slot-scope="data">
+					<el-tooltip placement="top-start" :content="data.row.joinDate">
+						<el-tag v-if="data.row.status" type="success">在职</el-tag>
+					</el-tooltip>
+					<el-tooltip placement="top-start" :content="data.row.leaveDate">
+						<el-tag v-if="!data.row.status" type="danger">离职</el-tag>
+					</el-tooltip>
+				</template>
+			</el-table-column>
+			<el-table-column label="操作">
+				<template slot-scope="data">
+					<el-button type="primary" size="mini" @click="edit(data.row)" icon="el-icon-edit">编辑</el-button>
+					<el-button type="danger" size="mini" @click="deleteItem(data.row.ID)" icon="el-icon-delete">删除</el-button>
+				</template> 
+			</el-table-column>
+		</el-table>
+	</div>
+
+	<script>
+		var root = new Vue({
+			el:"#root",
+			data:{
+				url:"http://127.0.0.1:8080/",
+				list:[],
+				addDialogVisible:false,
+				editDialogVisible:false,
+				newItem:{
+					name:"",
+					sex:"1",
+					department:"",
+					number:"",
+					status:"1",
+					birthday:"",
+					joinDate:"",
+					leaveDate:"",
+					IDCard:"",
+					salary:"",
+					ID:""
+				},
+				editItem:{
+					name:"",
+					sex:"",
+					department:"",
+					number:"",
+					status:"",
+					birthday:"",
+					joinDate:"",
+					leaveDate:"",
+					IDCard:"",
+					salary:"",
+					ID:""
+				}
+			},
+			computed:{
+			},
+			methods:{
+				edit(data){
+					for(let i in data){
+						this.editItem[i] = data[i];
+					}
+
+					this.editDialogVisible = true;
+				},
+				deleteItem(id){
+					this.$confirm(`你确定要删除此条数据吗？`,"操作确认",{
+						type:"warning"
+					}).then(()=>{
+						axios.get(`${this.url}deleteData?ID=${id}`).then((response)=>{
+							if(response.data == "success"){
+								this.$notify({
+									title:"删除成功",
+									type:"success"
+								})
+
+								axios.get(`http://127.0.0.1:8080/getData`).then((response)=>{
+									this.list = response.data;
+								})	
+							}
+							else{
+								this.$notify({
+									title:"删除失败",
+									type:"warning"
+								})
+							}
+						})
+					}).catch(()=>{
+						this.$message("已取消删除操作")
+					})
+				},
+				showAddDialog(){
+					this.newItem = {
+						name:"",
+						sex:"1",
+						department:"",
+						number:"",
+						status:"1",
+						birthday:"",
+						joinDate:"",
+						leaveDate:"",
+						IDCard:"",
+						salary:""
+					}
+					this.addDialogVisible= true;
+				},
+				cancelAdd(){
+					this.addDialogVisible= false;
+					this.$message("已取消添加操作")
+				},
+				confirmAdd(){
+					this.addDialogVisible = false;
+					this.$confirm(`你确定要添加该条员工数据吗？`,"操作确认",{
+						type:"info"
+					}).then(()=>{
+						axios.get(`${this.url}addData`,{
+							params:{
+								IDCard:this.newItem.IDCard,
+								birthday:this.newItem.birthday, 
+								department: this.newItem.department,
+								joinDate: this.newItem.joinDate,
+								leaveDate: this.newItem.leaveDate,
+								name: this.newItem.name,
+								number: this.newItem.number,
+								salary: this.newItem.salary,
+								sex: this.newItem.sex,
+								status: this.newItem.status,
+							}
+						}).then((response)=>{
+							if(response.data == "success"){
+								this.$notify({
+									title:"新员工注册成功",
+									type:"success"
+								})
+								axios.get(`http://127.0.0.1:8080/getData`).then((response)=>{
+									this.list = response.data;
+								})	
+							}
+							else{
+								this.$notify({
+									title:"新员工注册失败",
+									message:"请检查数据是否完整",
+									type:"warning"
+								})
+							}
+						})
+					})
+				},
+				cancelEdit(){
+					this.editDialogVisible=false;
+					this.$message("已取消编辑操作")
+				},
+				confirmEdit(){
+					this.editDialogVisible = false;
+
+					this.$confirm(`你确定要修改该条员工数据吗？`,"操作确认",{
+						type:"info"
+					}).then(()=>{
+						axios.get(`${this.url}editData`,{
+							params:{
+								IDCard:this.editItem.IDCard,
+								birthday:this.editItem.birthday, 
+								department: this.editItem.department,
+								joinDate: this.editItem.joinDate,
+								leaveDate: this.editItem.leaveDate,
+								name: this.editItem.name,
+								number: this.editItem.number,
+								salary: this.editItem.salary,
+								sex: this.editItem.sex,
+								status: this.editItem.status,
+								ID: this.editItem.ID,
+							}
+						}).then((response)=>{
+							if(response.data == "success"){
+								this.$notify({
+									title:"员工信息修改成功",
+									type:"success"
+								})
+								axios.get(`http://127.0.0.1:8080/getData`).then((response)=>{
+									this.list = response.data;
+								})	
+							}
+							else{
+								this.$notify({
+									title:"员工信息修改失败",
+									message:"请检查数据是否完整",
+									type:"warning"
+								})
+							}
+						})
+					})
+				}
+			},
+			mounted(){
+				axios.get(`http://127.0.0.1:8080/getData`).then((response)=>{
+					this.list = response.data;
+				})	
+			}
+		})
+	</script>
+</body>
+</html>
